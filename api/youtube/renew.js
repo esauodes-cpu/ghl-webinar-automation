@@ -1,22 +1,24 @@
 // api/youtube/renew.js
 // Ciclo completo de renovación de YouTube:
-// 1. Takedown del broadcast anterior (private)
-// 2. Creación del nuevo broadcast
-// 3. Bind al stream permanente
-// El token de YouTube viene inyectado por la app de GHL en el Authorization header.
+// 1. Lee custom values del cliente via API de GHL (token de GHL desde Supabase)
+// 2. Takedown del broadcast anterior (private)
+// 3. Creación del nuevo broadcast
+// 4. Bind al stream permanente
+// 5. Actualiza custom value live_stream_video_id en GHL
+// El token de YouTube viene inyectado por GHL en el Authorization header.
 
 import { getCustomValues, updateCustomValues } from "../../lib/ghl-api.js";
 
 export default async function youtubeRenew(req, res) {
-  const ytToken     = req.headers["authorization"];
-  const locationId  = req.body?.location_id;
+  const ytToken    = req.headers["authorization"];
+  const locationId = req.body?.location_id;
 
   if (!ytToken) {
     return res.status(200).json({ ok: false, error: "Missing YouTube authorization token." });
   }
 
   if (!locationId) {
-    return res.status(200).json({ ok: false, error: "Missing location_id." });
+    return res.status(200).json({ ok: false, error: 'Missing "location_id".' });
   }
 
   // ─── PASO 1: Leer custom values del cliente desde GHL ─────────────────────
@@ -33,7 +35,6 @@ export default async function youtubeRenew(req, res) {
   const description         = cv["webinar_description"] || "";
   const scheduledStartTime  = cv["webinar_scheduled_start_time"];
 
-  // Validar que tenemos todo lo necesario
   const missing = [];
   if (!previousBroadcastId) missing.push("live_stream_video_id");
   if (!streamId)             missing.push("webinar_stream_id");
@@ -129,22 +130,26 @@ export default async function youtubeRenew(req, res) {
       });
     }
   } catch (err) {
-    return res.status(200).json({ ok: false, step: "bind", error: err.message, newBroadcastId });
+    return res.status(200).json({
+      ok: false,
+      step: "bind",
+      error: err.message,
+      newBroadcastId,
+    });
   }
 
-  // ─── PASO 5: Actualizar custom value live_stream_video_id en GHL ──────────
+  // ─── PASO 5: Actualizar custom value en GHL ───────────────────────────────
   try {
     await updateCustomValues(locationId, {
       live_stream_video_id: newBroadcastId,
     });
   } catch (err) {
-    // No es fatal — retornamos el newBroadcastId igual para que GHL lo pueda guardar
     return res.status(200).json({
       ok: true,
       warning: `Broadcast created but failed to update custom value: ${err.message}`,
       newBroadcastId,
-      embedUrl: `https://www.youtube.com/embed/${newBroadcastId}`,
-      watchUrl: `https://www.youtube.com/watch?v=${newBroadcastId}`,
+      embedUrl:           `https://www.youtube.com/embed/${newBroadcastId}`,
+      watchUrl:           `https://www.youtube.com/watch?v=${newBroadcastId}`,
       previousBroadcastId,
     });
   }
