@@ -1,5 +1,7 @@
-import { getSupabase }    from "../../_supabase.js";
+import { getSupabase }     from "../../_supabase.js";
 import { encrypt, decrypt } from "../../../lib/crypto.js";
+
+const GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token";
 
 const REFRESH_MARGIN_MS = 5 * 60 * 1000;
 
@@ -33,22 +35,14 @@ async function _refreshAccessToken(locationId, row) {
 
   const supabase = getSupabase();
 
-  const { data: app, error: appError } = await supabase
-    .from("platform_apps")
-    .select("*")
-    .eq("platform", "youtube")
-    .single();
-
-  if (appError || !app) throw new Error("No YouTube app credentials found in platform_apps.");
-
-  const res = await fetch(app.token_url, {
+  const res = await fetch(GOOGLE_TOKEN_URL, {
     method:  "POST",
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
     body:    new URLSearchParams({
       grant_type:    "refresh_token",
       refresh_token: decrypt(row.refresh_token),
-      client_id:     decrypt(app.client_id),
-      client_secret: decrypt(app.client_secret),
+      client_id:     process.env.YOUTUBE_CLIENT_ID,
+      client_secret: process.env.YOUTUBE_CLIENT_SECRET,
     }),
   });
 

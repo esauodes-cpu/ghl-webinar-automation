@@ -3,8 +3,10 @@
 // Recibe: ?code=...&state=<locationId>
 // Guarda los tokens encriptados en Supabase bajo (locationId, "youtube").
 
-import { getSupabase }    from "../../_supabase.js";
-import { encrypt, decrypt } from "../../../lib/crypto.js";
+import { getSupabase } from "../../_supabase.js";
+import { encrypt }     from "../../../lib/crypto.js";
+
+const GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token";
 
 export default async function handler(req, res) {
   const { code, state: locationId, error } = req.query;
@@ -20,22 +22,14 @@ export default async function handler(req, res) {
   try {
     const supabase = getSupabase();
 
-    const { data: app, error: appError } = await supabase
-      .from("platform_apps")
-      .select("*")
-      .eq("platform", "youtube")
-      .single();
-
-    if (appError || !app) throw new Error("No YouTube app credentials found in platform_apps.");
-
-    const tokenRes = await fetch(app.token_url, {
+    const tokenRes = await fetch(GOOGLE_TOKEN_URL, {
       method:  "POST",
       headers: { "Content-Type": "application/x-www-form-urlencoded" },
       body:    new URLSearchParams({
         code,
         grant_type:    "authorization_code",
-        client_id:     decrypt(app.client_id),
-        client_secret: decrypt(app.client_secret),
+        client_id:     process.env.YOUTUBE_CLIENT_ID,
+        client_secret: process.env.YOUTUBE_CLIENT_SECRET,
         redirect_uri:  process.env.YOUTUBE_REDIRECT_URI,
       }),
     });

@@ -3,8 +3,7 @@
 // Requiere: ?locationId=<id>
 // Redirige al usuario a Google para autorizar.
 
-import { getSupabase }     from "../../_supabase.js";
-import { decrypt }         from "../../../lib/crypto.js";
+const GOOGLE_AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth";
 
 export default async function handler(req, res) {
   const { locationId } = req.query;
@@ -13,30 +12,15 @@ export default async function handler(req, res) {
     return res.status(400).send("Se requiere el parámetro ?locationId=");
   }
 
-  try {
-    const supabase = getSupabase();
+  const params = new URLSearchParams({
+    client_id:     process.env.YOUTUBE_CLIENT_ID,
+    redirect_uri:  process.env.YOUTUBE_REDIRECT_URI,
+    response_type: "code",
+    scope:         process.env.YOUTUBE_SCOPES,
+    access_type:   "offline",
+    prompt:        "consent",
+    state:         locationId,
+  });
 
-    const { data: app, error: appError } = await supabase
-      .from("platform_apps")
-      .select("*")
-      .eq("platform", "youtube")
-      .single();
-
-    if (appError || !app) throw new Error("No YouTube app credentials found in platform_apps.");
-
-    const params = new URLSearchParams({
-      client_id:     decrypt(app.client_id),
-      redirect_uri:  process.env.YOUTUBE_REDIRECT_URI,
-      response_type: "code",
-      scope:         app.scopes,
-      access_type:   "offline",
-      prompt:        "consent",
-      state:         locationId,
-    });
-
-    return res.redirect(302, `${app.auth_url}?${params}`);
-  } catch (err) {
-    console.error("YouTube authorize error:", err);
-    return res.status(500).send(`Error al generar URL de autorización: ${err.message}`);
-  }
+  return res.redirect(302, `${GOOGLE_AUTH_URL}?${params}`);
 }
