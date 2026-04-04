@@ -1,6 +1,6 @@
 // api/webinar/renew.js
 // Entry point para GHL workflows. Ruta al módulo de plataforma correspondiente.
-// Body: { locationId, platform, streamId, title, scheduledStartTime, previousBroadcastId, description? }
+// Body: { locationId, platform, streamId, title, scheduledStartTime, previousBroadcastId, description?, meetingUrl? }
 // Respuesta: { ok: true, meetingUrl, broadcastId }
 
 import { getAccessToken }                 from "../_auth-manager.js";
@@ -37,6 +37,7 @@ export default async function handler(req, res) {
     scheduledStartTime,
     previousBroadcastId,
     description,
+    meetingUrl,
   } = req.body || {};
 
   if (!locationId)          return res.status(200).json({ ok: false, error: 'Missing "locationId".' });
@@ -68,7 +69,9 @@ export default async function handler(req, res) {
       scheduledStartTime,
     });
 
-    return res.status(200).json({ ok: true, ...result });
+    const response = { ok: true, ...result };
+    if (meetingUrl) response.meetingUrl = meetingUrl;
+    return res.status(200).json(response);
   } catch (err) {
     const body = { ok: false, error: err.message };
     if (err.step)    body.step    = err.step;
