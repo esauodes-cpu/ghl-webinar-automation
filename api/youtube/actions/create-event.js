@@ -44,6 +44,7 @@ export async function createEvent({
   }
 
   // ─── 2. Crear nuevo broadcast ──────────────────────────────────────────────
+  console.log("scheduledStartTime recibido:", scheduledStartTime);
   const broadcastRes = await fetch(
     "https://www.googleapis.com/youtube/v3/liveBroadcasts?part=snippet,status,contentDetails",
     {
