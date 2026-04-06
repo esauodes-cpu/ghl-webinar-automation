@@ -6,6 +6,7 @@
 import { getAccessToken }                 from "../_auth-manager.js";
 import { createEvent as youtubeCreate }   from "../youtube/actions/create-event.js";
 import { createEvent as teamsCreate }     from "../teams/actions/create-event.js";
+import { getSupabase } from "../_supabase.js";
 
 const PLATFORM_HANDLERS = {
   youtube: youtubeCreate,
@@ -71,6 +72,14 @@ export default async function handler(req, res) {
 
     const response = { ok: true, ...result };
     if (meetingUrl) response.meetingUrl = meetingUrl;
+    // Guardar webinar_title en platform_tokens para que notify.js pueda hacer match
+    // cuando la plataforma suba directamente a YouTube sin pasar por upload.js
+    const supabase = getSupabase();
+    await supabase
+      .from("platform_tokens")
+      .update({ webinar_title: title })
+      .eq("location_id", locationId)
+      .eq("platform", "youtube");
     return res.status(200).json(response);
   } catch (err) {
     const body = { ok: false, error: err.message };
