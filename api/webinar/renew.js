@@ -3,10 +3,10 @@
 // Body: { locationId, platform, streamId, title, scheduledStartTime, previousBroadcastId, description?, meetingUrl? }
 // Respuesta: { ok: true, meetingUrl, broadcastId }
 
-import { getAccessToken }                 from "../_auth-manager.js";
-import { createEvent as youtubeCreate }   from "../youtube/actions/create-event.js";
-import { createEvent as teamsCreate }     from "../teams/actions/create-event.js";
-import { getSupabase } from "../_supabase.js";
+import { getAccessToken }                 from "../../lib/auth-manager.js";
+import { createEvent as youtubeCreate }   from "../../lib/youtube/create-event.js";
+import { createEvent as teamsCreate }     from "../../lib/teams/create-event.js";
+import { getSupabase }                    from "../../lib/supabase.js";
 
 const PLATFORM_HANDLERS = {
   youtube: youtubeCreate,

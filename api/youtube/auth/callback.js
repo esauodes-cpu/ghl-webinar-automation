@@ -3,7 +3,7 @@
 // Recibe: ?code=...&state=<locationId>
 // Guarda los tokens encriptados en Supabase bajo (locationId, "youtube").
 
-import { getSupabase } from "../../_supabase.js";
+import { getSupabase } from "../../../lib/supabase.js";
 import { encrypt }     from "../../../lib/crypto.js";
 
 const GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token";
