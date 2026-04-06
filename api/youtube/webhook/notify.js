@@ -7,7 +7,7 @@
 // GET  → verificación de suscripción WebSub (challenge)
 // POST → notificación de nuevo video
 
-import { getSupabase } from "../../_supabase.js";
+import { getSupabase } from "../../../lib/supabase.js";
 
 const GHL_REPLAY_WEBHOOK_URL = "https://services.leadconnectorhq.com/hooks/gyZ8OVB8XfLPl2Q7VtXx/webhook-trigger/fefb2caf-5e66-4d1b-909a-333a03817c96";
 

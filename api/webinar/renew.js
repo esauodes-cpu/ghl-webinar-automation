@@ -7,6 +7,7 @@ import { getAccessToken }                 from "../../lib/auth-manager.js";
 import { createEvent as youtubeCreate }   from "../../lib/youtube/create-event.js";
 import { createEvent as teamsCreate }     from "../../lib/teams/create-event.js";
 import { getSupabase }                    from "../../lib/supabase.js";
+import { renewWebSubSubscription }        from "../../lib/youtube/subscribe.js";
 
 const PLATFORM_HANDLERS = {
   youtube: youtubeCreate,
@@ -72,14 +73,34 @@ export default async function handler(req, res) {
 
     const response = { ok: true, ...result };
     if (meetingUrl) response.meetingUrl = meetingUrl;
+
+    const supabase = getSupabase();
+
     // Guardar webinar_title en platform_tokens para que notify.js pueda hacer match
     // cuando la plataforma suba directamente a YouTube sin pasar por upload.js
-    const supabase = getSupabase();
     await supabase
       .from("platform_tokens")
       .update({ webinar_title: title })
       .eq("location_id", locationId)
       .eq("platform", "youtube");
+
+    // Renovar suscripción WebSub si el cliente ya tiene un channel_id registrado
+    const { data: tokenRow } = await supabase
+      .from("platform_tokens")
+      .select("channel_id")
+      .eq("location_id", locationId)
+      .eq("platform", "youtube")
+      .single();
+
+    if (tokenRow?.channel_id) {
+      try {
+        await renewWebSubSubscription(tokenRow.channel_id);
+      } catch (subErr) {
+        // No abortar el renew por un fallo en WebSub — loguear y continuar
+        console.error("[renew] WebSub renewal failed:", subErr.message);
+      }
+    }
+
     return res.status(200).json(response);
   } catch (err) {
     const body = { ok: false, error: err.message };

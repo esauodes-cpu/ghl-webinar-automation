@@ -7,8 +7,8 @@
 // Body: { locationId, platform, recordingUrl, title }
 // Respuesta: { ok: true, videoId }
 
-import { getAccessToken } from "../_auth-manager.js";
-import { getSupabase }    from "../_supabase.js";
+import { getAccessToken } from "../../lib/auth-manager.js";
+import { getSupabase }    from "../../lib/supabase.js";
 
 function validateWebhookSecret(req) {
   const expected = process.env.WEBHOOK_SECRET;
