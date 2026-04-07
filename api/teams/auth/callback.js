@@ -2,7 +2,7 @@
 // OAuth callback de Microsoft Teams. Se ejecuta una vez por instalación.
 // Recibe: ?code=...&state=<locationId>
 // Guarda los tokens encriptados en Supabase bajo (locationId, "teams"),
-// crea el primer meeting y notifica a GHL.
+// crea el primer meeting y guarda el resultado en Supabase.
 
 import { getSupabase } from "../../../lib/supabase.js";
 import { encrypt }     from "../../../lib/crypto.js";
@@ -103,13 +103,6 @@ export default async function handler(req, res) {
       .update({ webinar_title: joinWebUrl, broadcast_id: meetingId })
       .eq("location_id", locationId)
       .eq("platform", "teams");
-
-    // ─── 5. Notificar a GHL ───────────────────────────────────────────────────
-    await fetch(process.env.GHL_TEAMS_AUTH_WEBHOOK_URL, {
-      method:  "POST",
-      headers: { "Content-Type": "application/json" },
-      body:    JSON.stringify({ locationId, meetingUrl: joinWebUrl, meetingId }),
-    });
 
     return res.status(200).send(html(
       "✅ Microsoft Teams Conectado",
