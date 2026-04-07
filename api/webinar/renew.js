@@ -74,30 +74,32 @@ export default async function handler(req, res) {
     const response = { ok: true, ...result };
     if (meetingUrl) response.meetingUrl = meetingUrl;
 
-    const supabase = getSupabase();
+    if (key === "youtube") {
+      const supabase = getSupabase();
 
-    // Guardar webinar_title en platform_tokens para que notify.js pueda hacer match
-    // cuando la plataforma suba directamente a YouTube sin pasar por upload.js
-    await supabase
-      .from("platform_tokens")
-      .update({ webinar_title: title })
-      .eq("location_id", locationId)
-      .eq("platform", "youtube");
+      // Guardar webinar_title en platform_tokens para que notify.js pueda hacer match
+      // cuando la plataforma suba directamente a YouTube sin pasar por upload.js
+      await supabase
+        .from("platform_tokens")
+        .update({ webinar_title: title })
+        .eq("location_id", locationId)
+        .eq("platform", "youtube");
 
-    // Renovar suscripción WebSub si el cliente ya tiene un channel_id registrado
-    const { data: tokenRow } = await supabase
-      .from("platform_tokens")
-      .select("channel_id")
-      .eq("location_id", locationId)
-      .eq("platform", "youtube")
-      .single();
+      // Renovar suscripción WebSub si el cliente ya tiene un channel_id registrado
+      const { data: tokenRow } = await supabase
+        .from("platform_tokens")
+        .select("channel_id")
+        .eq("location_id", locationId)
+        .eq("platform", "youtube")
+        .single();
 
-    if (tokenRow?.channel_id) {
-      try {
-        await renewWebSubSubscription(tokenRow.channel_id);
-      } catch (subErr) {
-        // No abortar el renew por un fallo en WebSub — loguear y continuar
-        console.error("[renew] WebSub renewal failed:", subErr.message);
+      if (tokenRow?.channel_id) {
+        try {
+          await renewWebSubSubscription(tokenRow.channel_id);
+        } catch (subErr) {
+          // No abortar el renew por un fallo en WebSub — loguear y continuar
+          console.error("[renew] WebSub renewal failed:", subErr.message);
+        }
       }
     }
 
