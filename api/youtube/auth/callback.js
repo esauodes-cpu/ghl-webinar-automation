@@ -1,6 +1,6 @@
 // api/youtube/auth/callback.js
 // OAuth callback de YouTube. Se ejecuta una vez por instalación.
-// Recibe: ?code=...&state=<locationId>
+// Recibe: ?code=...&state=<base64> (decodifica id como locationId)
 // Guarda los tokens encriptados en Supabase bajo (locationId, "youtube"),
 // obtiene el channelId del canal, crea el stream permanente y notifica a GHL.
 
@@ -12,7 +12,8 @@ const GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token";
 const GHL_AUTH_WEBHOOK_URL = process.env.GHL_YOUTUBE_AUTH_WEBHOOK_URL;
 
 export default async function handler(req, res) {
-  const { code, state: locationId, error } = req.query;
+  const { code, state, error } = req.query;
+  const locationId = state ? JSON.parse(Buffer.from(state, 'base64').toString('utf8')).id : null;
 
   if (error) {
     return res.status(400).send(html("Error de autorización", `YouTube devolvió: <strong>${error}</strong>`, "red"));

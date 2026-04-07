@@ -1,6 +1,6 @@
 // api/teams/auth/callback.js
 // OAuth callback de Microsoft Teams. Se ejecuta una vez por instalación.
-// Recibe: ?code=...&state=<locationId>
+// Recibe: ?code=...&state=<base64> (decodifica id como locationId)
 // Guarda los tokens encriptados en Supabase bajo (locationId, "teams"),
 // crea el primer meeting y guarda el resultado en Supabase.
 
@@ -11,7 +11,8 @@ const MS_TOKEN_URL          = "https://login.microsoftonline.com/common/oauth2/v
 const GRAPH_ONLINE_MEETINGS = "https://graph.microsoft.com/v1.0/me/onlineMeetings";
 
 export default async function handler(req, res) {
-  const { code, state: locationId, error } = req.query;
+  const { code, state, error } = req.query;
+  const locationId = state ? JSON.parse(Buffer.from(state, 'base64').toString('utf8')).id : null;
 
   if (error) {
     return res.status(400).send(html("Error de autorización", `Microsoft devolvió: <strong>${error}</strong>`, "red"));
