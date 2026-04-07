@@ -9,9 +9,7 @@ import { encrypt }     from "../../../lib/crypto.js";
 
 const GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token";
 
-// PLACEHOLDER: reemplazar con la URL del inbound webhook de autorización de GHL
-// (es diferente al webhook de replay que usa notify.js)
-const GHL_AUTH_WEBHOOK_URL = "https://services.leadconnectorhq.com/hooks/gyZ8OVB8XfLPl2Q7VtXx/webhook-trigger/fefb2caf-5e66-4d1b-909a-333a03817c96";
+const GHL_AUTH_WEBHOOK_URL = process.env.GHL_YOUTUBE_AUTH_WEBHOOK_URL;
 
 export default async function handler(req, res) {
   const { code, state: locationId, error } = req.query;
