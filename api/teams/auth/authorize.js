@@ -6,6 +6,10 @@
 const MS_AUTH_URL = "https://login.microsoftonline.com/common/oauth2/v2.0/authorize";
 
 export default async function handler(req, res) {
+  console.log("=== TEAMS AUTHORIZE CALLED ===");
+  console.log(JSON.stringify(req.query));
+  console.log(JSON.stringify(req.headers));
+
   const { locationId } = req.query;
 
   if (!locationId) {
