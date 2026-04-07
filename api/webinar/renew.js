@@ -42,12 +42,10 @@ export default async function handler(req, res) {
     meetingUrl,
   } = req.body || {};
 
-  if (!locationId)          return res.status(200).json({ ok: false, error: 'Missing "locationId".' });
-  if (!platform)            return res.status(200).json({ ok: false, error: 'Missing "platform".' });
-  if (!streamId)            return res.status(200).json({ ok: false, error: 'Missing "streamId".' });
-  if (!title)               return res.status(200).json({ ok: false, error: 'Missing "title".' });
-  if (!scheduledStartTime)  return res.status(200).json({ ok: false, error: 'Missing "scheduledStartTime".' });
-  if (!previousBroadcastId) return res.status(200).json({ ok: false, error: 'Missing "previousBroadcastId".' });
+  if (!locationId)         return res.status(200).json({ ok: false, error: 'Missing "locationId".' });
+  if (!platform)           return res.status(200).json({ ok: false, error: 'Missing "platform".' });
+  if (!title)              return res.status(200).json({ ok: false, error: 'Missing "title".' });
+  if (!scheduledStartTime) return res.status(200).json({ ok: false, error: 'Missing "scheduledStartTime".' });
 
   const key     = platform.toLowerCase().trim();
   const execute = PLATFORM_HANDLERS[key];
@@ -57,6 +55,11 @@ export default async function handler(req, res) {
       ok:    false,
       error: `Unsupported platform: "${platform}". Supported: ${Object.keys(PLATFORM_HANDLERS).join(", ")}`,
     });
+  }
+
+  if (key === "youtube") {
+    if (!streamId)            return res.status(200).json({ ok: false, error: 'Missing "streamId".' });
+    if (!previousBroadcastId) return res.status(200).json({ ok: false, error: 'Missing "previousBroadcastId".' });
   }
 
   try {
