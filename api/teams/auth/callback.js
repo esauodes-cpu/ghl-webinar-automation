@@ -34,7 +34,7 @@ export default async function handler(req, res) {
         client_secret: process.env.TEAMS_CLIENT_SECRET,
         code,
         redirect_uri:  process.env.TEAMS_REDIRECT_URI,
-        scope:         "offline_access OnlineMeetings.ReadWrite User.Read",
+        scope:         "offline_access OnlineMeetings.ReadWrite User.Read Files.ReadWrite Chat.Read",
       }),
     });
 
