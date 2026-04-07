@@ -17,7 +17,7 @@ export default async function handler(req, res) {
     response_type: "code",
     redirect_uri:  process.env.TEAMS_REDIRECT_URI,
     response_mode: "query",
-    scope:         "offline_access OnlineMeetings.ReadWrite User.Read",
+    scope:         "offline_access OnlineMeetings.ReadWrite User.Read Files.ReadWrite Chat.Read",
     state:         locationId,
   });
 
