@@ -75,7 +75,7 @@ export default async function handler(req, res) {
     });
 
     const response = { ok: true, ...result };
-    if (meetingUrl) response.meetingUrl = meetingUrl;
+    if (meetingUrl && meetingUrl !== "null") response.meetingUrl = meetingUrl;
 
     if (key === "youtube") {
       const supabase = getSupabase();
