@@ -75,7 +75,9 @@ export default async function handler(req, res) {
     });
 
     const response = { ok: true, ...result };
-    if (meetingUrl && meetingUrl !== "null") response.meetingUrl = meetingUrl;
+    const PLATFORM_DOMAINS = ["youtube.com", "youtu.be", "teams.microsoft.com", "zoom.us", "meet.google.com", "webex.com", "gotomeeting.com"];
+    const isCustomUrl = meetingUrl && meetingUrl !== "null" && !PLATFORM_DOMAINS.some(d => meetingUrl.includes(d));
+    if (isCustomUrl) response.meetingUrl = meetingUrl;
 
     if (key === "youtube") {
       const supabase = getSupabase();
