@@ -1,13 +1,12 @@
 // api/teams/auth/callback.js
 // Leg 2 of the Microsoft Teams OAuth flow.
 // Microsoft redirects here after user authorization.
-// Exchanges code for tokens, saves to Supabase, creates initial meeting.
+// Exchanges code for tokens and saves them to Supabase.
 
 import { getSupabase } from "../../../lib/supabase.js";
 import { encrypt }     from "../../../lib/crypto.js";
 
 const MS_TOKEN_URL = "https://login.microsoftonline.com/common/oauth2/v2.0/token";
-const GRAPH_BASE   = "https://graph.microsoft.com/v1.0";
 const SCOPE        = "offline_access OnlineMeetings.ReadWrite User.Read Files.ReadWrite Chat.Read";
 
 export default async function handler(req, res) {
@@ -57,42 +56,7 @@ export default async function handler(req, res) {
 
   const expiresAt = new Date(Date.now() + tokens.expires_in * 1000).toISOString();
 
-  // 3. Create initial Teams meeting
-  let joinWebUrl, meetingId;
-  try {
-    const now   = new Date();
-    const start = new Date(now.getTime() + 1 * 60 * 60 * 1000);
-    const end   = new Date(now.getTime() + 3 * 60 * 60 * 1000);
-
-    const meetingRes = await fetch(`${GRAPH_BASE}/me/onlineMeetings`, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${tokens.access_token}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        subject:             "Webinar Semanal",
-        startDateTime:       start.toISOString(),
-        endDateTime:         end.toISOString(),
-        lobbyBypassSettings: { scope: "everyone" },
-      }),
-    });
-
-    const meeting = await meetingRes.json();
-
-    if (!meetingRes.ok || !meeting.joinWebUrl) {
-      console.error("Meeting creation failed:", meeting);
-      return res.status(502).send("Failed to create initial Teams meeting.");
-    }
-
-    joinWebUrl = meeting.joinWebUrl;
-    meetingId  = meeting.id;
-  } catch (err) {
-    console.error("Meeting creation error:", err);
-    return res.status(500).send("Internal error creating Teams meeting.");
-  }
-
-  // 4. Save encrypted tokens + meeting info to Supabase
+  // 3. Save encrypted tokens to Supabase
   try {
     const supabase = getSupabase();
     const { error } = await supabase
@@ -105,8 +69,6 @@ export default async function handler(req, res) {
           refresh_token: encrypt(tokens.refresh_token),
           expires_at:    expiresAt,
           updated_at:    new Date().toISOString(),
-          webinar_title: joinWebUrl,
-          broadcast_id:  meetingId,
         },
         { onConflict: "location_id,platform" }
       );
@@ -120,7 +82,7 @@ export default async function handler(req, res) {
     return res.status(500).send("Internal error saving tokens.");
   }
 
-  // 5. Return success page
+  // 4. Return success page
   return res.status(200).send(`<!DOCTYPE html>
 <html lang="en">
 <head>
