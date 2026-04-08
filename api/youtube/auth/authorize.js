@@ -6,11 +6,11 @@
 const GOOGLE_AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth";
 
 export default async function handler(req, res) {
-  const { state, redirect_uri } = req.query;
+  const { state } = req.query;
 
   const params = new URLSearchParams({
     client_id:     process.env.YOUTUBE_CLIENT_ID,
-    redirect_uri,
+    redirect_uri:  process.env.YOUTUBE_REDIRECT_URI,
     response_type: "code",
     scope:         process.env.YOUTUBE_SCOPES,
     access_type:   "offline",
