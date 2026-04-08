@@ -16,11 +16,13 @@ export default async function handler(req, res) {
     return res.status(200).send("OK");
   }
 
-  // 1. Decode state → locationId
-  let locationId;
+  // 1. Decode state → locationId + ghlRedirectUri
+  let locationId, ghlRedirectUri;
   try {
     const decoded = Buffer.from(state, "base64").toString("utf8");
-    ({ id: locationId } = JSON.parse(decoded));
+    const stateObj = JSON.parse(decoded);
+    locationId     = stateObj.id;
+    ghlRedirectUri = stateObj.ghlRedirectUri;
   } catch (err) {
     return res.status(400).send("Invalid state parameter.");
   }
@@ -82,7 +84,11 @@ export default async function handler(req, res) {
     return res.status(500).send("Internal error saving tokens.");
   }
 
-  // 4. Return success page
+  // 4. Redirect to GHL or return success page
+  if (ghlRedirectUri) {
+    return res.redirect(302, ghlRedirectUri);
+  }
+
   return res.status(200).send(`<!DOCTYPE html>
 <html lang="en">
 <head>
