@@ -9,9 +9,10 @@ const SCOPE       = "offline_access OnlineMeetings.ReadWrite User.Read Files.Rea
 export default async function handler(req, res) {
   const { state, redirect_uri } = req.query;
 
-  // Embed GHL's redirect_uri into the state so callback can redirect back.
+  // Embed GHL's redirect_uri and original state into our state so callback can redirect back.
   const stateObj = JSON.parse(Buffer.from(state, "base64").toString("utf8"));
   stateObj.ghlRedirectUri = redirect_uri;
+  stateObj.ghlState       = state;
   const enrichedState = Buffer.from(JSON.stringify(stateObj)).toString("base64");
 
   const params = new URLSearchParams({
