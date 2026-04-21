@@ -1,6 +1,6 @@
 // api/webinar/renew.js
 // Entry point para GHL workflows. Ruta al módulo de plataforma correspondiente.
-// Body: { locationId, platform, streamId, title, scheduledStartTime, previousBroadcastId, description?, meetingUrl? }
+// Body: { locationId, platform, title, scheduledStartTime, description? }
 // Respuesta: { ok: true, meetingUrl, broadcastId }
 
 import { getAccessToken }                 from "../../lib/auth-manager.js";
@@ -31,16 +31,7 @@ export default async function handler(req, res) {
     return res.status(200).json({ ok: false, error: "Unauthorized." });
   }
 
-  const {
-    locationId,
-    platform,
-    streamId,
-    title,
-    scheduledStartTime,
-    previousBroadcastId,
-    description,
-    meetingUrl,
-  } = req.body || {};
+  const { locationId, platform, title, scheduledStartTime, description } = req.body || {};
 
   if (!locationId)         return res.status(200).json({ ok: false, error: 'Missing "locationId".' });
   if (!platform)           return res.status(200).json({ ok: false, error: 'Missing "platform".' });
@@ -57,27 +48,17 @@ export default async function handler(req, res) {
     });
   }
 
-  if (key === "youtube") {
-    if (!streamId)            return res.status(200).json({ ok: false, error: 'Missing "streamId".' });
-    if (!previousBroadcastId) return res.status(200).json({ ok: false, error: 'Missing "previousBroadcastId".' });
-  }
-
   try {
     const accessToken = await getAccessToken(key, locationId);
     const result      = await execute({
       accessToken,
       locationId,
-      previousBroadcastId,
-      streamId,
       title,
       description,
       scheduledStartTime,
     });
 
     const response = { ok: true, ...result };
-    const PLATFORM_DOMAINS = ["youtube.com", "youtu.be", "teams.microsoft.com", "zoom.us", "meet.google.com", "webex.com", "gotomeeting.com"];
-    const isCustomUrl = meetingUrl && meetingUrl !== "null" && !PLATFORM_DOMAINS.some(d => meetingUrl.includes(d));
-    if (isCustomUrl) response.meetingUrl = meetingUrl;
 
     if (key === "youtube") {
       const supabase = getSupabase();
@@ -91,16 +72,16 @@ export default async function handler(req, res) {
         .eq("platform", "youtube");
 
       // Renovar suscripción WebSub si el cliente ya tiene un channel_id registrado
-      const { data: tokenRow } = await supabase
-        .from("platform_tokens")
+      const { data: streamRow } = await supabase
+        .from("stream_data")
         .select("channel_id")
         .eq("location_id", locationId)
         .eq("platform", "youtube")
         .single();
 
-      if (tokenRow?.channel_id) {
+      if (streamRow?.channel_id) {
         try {
-          await renewWebSubSubscription(tokenRow.channel_id);
+          await renewWebSubSubscription(streamRow.channel_id);
         } catch (subErr) {
           // No abortar el renew por un fallo en WebSub — loguear y continuar
           console.error("[renew] WebSub renewal failed:", subErr.message);

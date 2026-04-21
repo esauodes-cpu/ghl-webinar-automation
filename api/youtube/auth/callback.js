@@ -2,14 +2,12 @@
 // OAuth callback de YouTube. Se ejecuta una vez por instalación.
 // Recibe: ?code=...&state=<base64> (decodifica id como locationId)
 // Guarda los tokens encriptados en Supabase bajo (locationId, "youtube"),
-// obtiene el channelId del canal, crea el stream permanente y notifica a GHL.
+// obtiene el channelId del canal, crea el stream permanente y guarda los datos en stream_data.
 
 import { getSupabase } from "../../../lib/supabase.js";
 import { encrypt }     from "../../../lib/crypto.js";
 
 const GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token";
-
-const GHL_AUTH_WEBHOOK_URL = process.env.GHL_YOUTUBE_AUTH_WEBHOOK_URL;
 
 export default async function handler(req, res) {
   const { code, state, error } = req.query;
@@ -84,14 +82,7 @@ export default async function handler(req, res) {
 
     if (!channelId) throw new Error("No channel found for this YouTube account.");
 
-    // ─── 3. Guardar channelId en platform_tokens ──────────────────────────────
-    await supabase
-      .from("platform_tokens")
-      .update({ channel_id: channelId })
-      .eq("location_id", locationId)
-      .eq("platform", "youtube");
-
-    // ─── 4. Crear stream permanente ───────────────────────────────────────────
+    // ─── 3. Crear stream permanente ───────────────────────────────────────────
     const streamRes = await fetch(
       "https://www.googleapis.com/youtube/v3/liveStreams?part=snippet,cdn",
       {
@@ -113,18 +104,30 @@ export default async function handler(req, res) {
       throw new Error(`Failed to create live stream: ${streamRes.status} — ${err}`);
     }
 
-    const streamData = await streamRes.json();
-    const streamId   = streamData.id;
-    const streamKey  = streamData.cdn?.ingestionInfo?.streamName;
+    const streamData       = await streamRes.json();
+    const streamId         = streamData.id;
+    const streamKey        = streamData.cdn?.ingestionInfo?.streamName;
+    const ingestionAddress = streamData.cdn?.ingestionInfo?.ingestionAddress;
 
     if (!streamId || !streamKey) throw new Error("Incomplete stream data returned by YouTube.");
 
-    // ─── 5. Notificar a GHL con channelId, streamId y streamKey ──────────────
-    await fetch(GHL_AUTH_WEBHOOK_URL, {
-      method:  "POST",
-      headers: { "Content-Type": "application/json" },
-      body:    JSON.stringify({ locationId, channelId, streamId, streamKey }),
-    });
+    // ─── 5. Guardar stream data en stream_data ────────────────────────────────
+    const { error: streamSaveError } = await supabase
+      .from("stream_data")
+      .upsert(
+        {
+          location_id:       locationId,
+          platform:          "youtube",
+          channel_id:        channelId,
+          stream_id:         streamId,
+          stream_key:        streamKey,
+          ingestion_address: ingestionAddress,
+          updated_at:        new Date().toISOString(),
+        },
+        { onConflict: "location_id,platform" }
+      );
+
+    if (streamSaveError) throw new Error(`Failed to save stream data: ${streamSaveError.message}`);
 
     return res.status(200).send(html(
       "✅ YouTube Conectado",
